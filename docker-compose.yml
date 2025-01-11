@@ -1,0 +1,70 @@
+services:
+#  user-service:
+#    build:
+#      context: .
+#      dockerfile: user-service/Dockerfile
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=default
+
+#  order-service:
+#    build:
+#      context: .
+#      dockerfile: order-service/Dockerfile
+#    ports:
+#      - "8082:8082"
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=default
+#
+#  gateway-service:
+#    build:
+#      context: .
+#      dockerfile: gateway-service/Dockerfile
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=default
+#    depends_on:
+#      - user-service
+#      - order-service
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - 2181:2181
+    container_name: zookeeper
+    networks:
+      custom_network:
+        ipv4_address: 172.28.0.99
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    container_name: kafka0
+    hostname: kafka0
+    ports:
+      - 9093:9093
+    environment:
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9093
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092,OUTSIDE://localhost:9093
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_BROKER_ID: 0
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    networks:
+      custom_network:
+        ipv4_address: 172.28.0.100
+    volumes:
+      - ./kafka-init:/kafka-init
+#    command: "sh -c '/etc/confluent/docker/run & sleep 5 && /kafka-init/create-topics.sh && fg'"
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,22 @@
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.1" // Adjust version as needed
+    }
+}
+
+
+
+bootJar {
+    enabled = true
+}
+
+//bootBuildImage{
+//    imageName='$DOCKER_USER_NAME$/'+rootProject.name+'-'+project.name
+//}
