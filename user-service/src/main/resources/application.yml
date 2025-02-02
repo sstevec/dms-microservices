@@ -12,6 +12,8 @@ spring:
     show-sql: true
   application:
     name: user-service
+  main:
+    allow-circular-references: true
 
   datasource:
     url: jdbc:postgresql://localhost:5432/dms_project

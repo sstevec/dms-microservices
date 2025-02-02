@@ -4,6 +4,7 @@ import com.example.dms.entity.Product;
 import com.example.dms.entity.ProductAuthorization;
 import com.example.dms.entity.ProductGroup;
 import com.example.dms.entity.User;
+import com.example.dms.entity.display.AuthorizedProductDisplay;
 import com.example.dms.repository.ProductAuthorizationRepository;
 import com.example.dms.repository.ProductGroupRepository;
 import com.example.dms.repository.ProductRepository;
@@ -21,19 +22,23 @@ public class ProductService {
     private final ProductAuthorizationRepository authorizationRepository;
     private final UserRepository userRepository;
     private final ProductGroupRepository productGroupRepository;
+    private final ProductAuthorizationRepository productAuthorizationRepository;
+    private final ProductGroupService productGroupService;
 
     public ProductService(ProductRepository productRepository,
                           ProductAuthorizationRepository authorizationRepository,
                           UserRepository userRepository,
-                          ProductGroupRepository productGroupRepository) {
+                          ProductGroupRepository productGroupRepository, ProductAuthorizationRepository productAuthorizationRepository, ProductGroupService productGroupService) {
         this.productRepository = productRepository;
         this.authorizationRepository = authorizationRepository;
         this.userRepository = userRepository;
         this.productGroupRepository = productGroupRepository;
+        this.productAuthorizationRepository = productAuthorizationRepository;
+        this.productGroupService = productGroupService;
     }
 
     @Transactional
-    public Product addProduct(String name, String description, UUID ownerId, String detail) {
+    public Product addProduct(String name, String description, UUID ownerId, String detail, String customerInfoTemplate) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Owner not found"));
 
@@ -42,13 +47,14 @@ public class ProductService {
         product.setDescription(description);
         product.setOwner(owner);
         product.setProductDetail(detail);
+        product.setcustomerInfoTemplate(customerInfoTemplate);
+        productRepository.save(product);
 
         // upon register a new product, it should be authorized to the creator
         ProductAuthorization authorization = new ProductAuthorization();
         authorization.setProduct(product);
         authorization.setOwner(owner);
         authorization.setProvider(owner);
-        productRepository.save(product);
         authorizationRepository.save(authorization);
 
         return product;
@@ -59,20 +65,11 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
 
-        List<ProductAuthorization> authorizations = authorizationRepository.findByProductId(productId);
+        // remove its auth first
+        UUID ownerId = product.getOwner().getId();
+        ProductAuthorization selfAuth = productAuthorizationRepository.findByProviderIdAndOwnerIdAndProductId(ownerId, ownerId, productId);
 
-        for (ProductAuthorization authorization : authorizations) {
-            List<ProductGroup> groups = productGroupRepository.findGroupsByProductAuthorizationId(authorization.getId());
-            for (ProductGroup group : groups) {
-                group.getProducts().remove(authorization);
-                productGroupRepository.save(group); // Update group after removal
-            }
-
-            // Remove the authorization
-            authorizationRepository.delete(authorization);
-        }
-
-        // TODO: Notify all users affected by this product removal
+        productGroupService.removeProductAuthorization(selfAuth);
 
         productRepository.delete(product);
     }
@@ -98,8 +95,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<Product> getProductsByUser(UUID userId) {
-        List<ProductAuthorization> authorizations = authorizationRepository.findByOwnerId(userId);
-        return authorizations.stream().map(ProductAuthorization::getProduct).toList();
+    public List<ProductAuthorization> getAuthorizedProductsByUser(UUID userId) {
+        return authorizationRepository.findByOwnerId(userId);
     }
 }

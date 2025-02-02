@@ -16,4 +16,10 @@ public interface ProductAuthorizationRepository extends JpaRepository<ProductAut
     List<ProductAuthorization> findByGroupId(UUID groupId);
 
     List<ProductAuthorization> findByGroupIdAndOwnerId(UUID groupId, UUID childId);
+
+    void deleteByGroupIdAndProductId(UUID groupId, UUID productId);
+
+    ProductAuthorization findByProviderIdAndOwnerIdAndProductId(UUID providerId, UUID ownerId, UUID productId);
+
+    ProductAuthorization findByOwnerIdAndGroupIdAndProductId(UUID providerId, UUID groupId, UUID productId);
 }

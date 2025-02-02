@@ -1,5 +1,6 @@
 package com.example.dms.entity;
 
+import com.example.dms.entity.display.AuthorizedProductDisplay;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -26,7 +27,7 @@ public class ProductAuthorization {
 
     @ManyToOne
     @JoinColumn(name = "group_id")
-    private ProductGroup group; // The user who authorized the product
+    private ProductGroup group; // The group which authorized the product
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -79,4 +80,22 @@ public class ProductAuthorization {
     public void setProductGroup(ProductGroup productGroup) {
         this.group = productGroup;
     }
+
+    public AuthorizedProductDisplay getAuthorizedProductDisplay() {
+        return new AuthorizedProductDisplay(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ProductAuthorization that = (ProductAuthorization) o;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
 }

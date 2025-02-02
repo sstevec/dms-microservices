@@ -1,5 +1,6 @@
 package com.example.dms.entity;
 
+import com.example.dms.entity.display.GroupDisplay;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -72,5 +73,9 @@ public class ProductGroup {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public GroupDisplay getDisplayableInfo(){
+        return new GroupDisplay(id, name);
     }
 }

@@ -49,14 +49,33 @@ public class UserController {
     }
 
     @PostMapping("/send-invitation")
-    public ResponseEntity<String> getAccountInfo(@RequestParam String fromUserEmail, @RequestParam String toUserEmail) {
+    public ResponseEntity<String> sendInvitation(@RequestParam String fromUserEmail, @RequestParam String toUserEmail) {
         try {
             userService.sendInvitationNotification(fromUserEmail, toUserEmail);
             return ResponseEntity.ok("Invitation sent");
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
+    }
 
+    @PostMapping("/accept-invitation")
+    public ResponseEntity<String> acceptInvitation(@RequestParam String providerEmail, @RequestParam String userId) {
+        try {
+            userRelationshipService.addRelationship(providerEmail, UUID.fromString(userId));
+            return ResponseEntity.ok("Link Build Success");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/delete-link")
+    public ResponseEntity<String> deleteLink(@RequestParam String parentId, @RequestParam String childId) {
+        try {
+            userRelationshipService.deleteRelationship(UUID.fromString(parentId), UUID.fromString(childId));
+            return ResponseEntity.ok("Link Deleted Successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/get-all-linked-accounts")

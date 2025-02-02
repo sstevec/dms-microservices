@@ -52,8 +52,24 @@ public class ProductGroupService {
         ProductAuthorization productAuthorization = productAuthorizationRepository.findById(productAuthId)
                 .orElseThrow(() -> new IllegalArgumentException("Product authorization not found"));
 
+        if (group.getProducts().contains(productAuthorization)) {
+            // already in the group
+            return;
+        }
         group.getProducts().add(productAuthorization);
         productGroupRepository.save(group);
+
+        // All users assigned to the group will have the auth of the product
+        List<User> assignedUsers = userGroupRelationshipRepository.findByGroupId(groupId)
+                .stream().map(UserGroupRelationship::getUser).toList();
+        for (User user : assignedUsers) {
+            ProductAuthorization auth = new ProductAuthorization();
+            auth.setProduct(productAuthorization.getProduct());
+            auth.setProductGroup(group);
+            auth.setOwner(user);
+            auth.setProvider(group.getOwner());
+            productAuthorizationRepository.save(auth);
+        }
     }
 
     @Transactional
@@ -64,9 +80,23 @@ public class ProductGroupService {
         ProductAuthorization productAuthorization = productAuthorizationRepository.findById(productAuthId)
                 .orElseThrow(() -> new IllegalArgumentException("Product authorization not found"));
 
-        group.getProducts().remove(productAuthorization);
-        productGroupRepository.save(group);
+       removeAuthFromGroup(productAuthorization, group);
     }
+
+    @Transactional
+    public void removeAuthFromGroup(ProductAuthorization authorization, ProductGroup group) {
+        group.getProducts().remove(authorization);
+        productGroupRepository.save(group);
+
+        // all users in the group will lose their auth from the given auth
+        List<User> assignedUsers = userGroupRelationshipRepository.findByGroupId(group.getId())
+                .stream().map(UserGroupRelationship::getUser).toList();
+        for (User user : assignedUsers) {
+            ProductAuthorization auth = productAuthorizationRepository.findByOwnerIdAndGroupIdAndProductId(user.getId(), group.getId(), authorization.getProduct().getId());
+            removeProductAuthorization(auth);
+        }
+    }
+
 
     @Transactional(readOnly = true)
     public List<ProductAuthorization> getAuthsByGroup(UUID groupId) {
@@ -95,6 +125,17 @@ public class ProductGroupService {
         userGroupRelationship.setGroup(group);
 
         userGroupRelationshipRepository.save(userGroupRelationship);
+
+        // upon user get into the group, he should obtain all auth provided by the group
+        List<ProductAuthorization> authorizations = getAuthsByGroup(groupId);
+        for (ProductAuthorization authorization : authorizations) {
+            ProductAuthorization subAuth = new ProductAuthorization();
+            subAuth.setProduct(authorization.getProduct());
+            subAuth.setProductGroup(group);
+            subAuth.setOwner(child);
+            subAuth.setProvider(group.getOwner());
+            productAuthorizationRepository.save(subAuth);
+        }
     }
 
     @Transactional
@@ -111,10 +152,10 @@ public class ProductGroupService {
 
         List<ProductAuthorization> productAuthorizations = productAuthorizationRepository
                 .findByGroupIdAndOwnerId(groupId, childId);
-
-        productAuthorizationRepository.deleteAll(productAuthorizations);
-
-        // TODO notify the user they are being removed from the group
+        // for all auth obtained from the given group, the user should remove them
+        for (ProductAuthorization productAuthorization : productAuthorizations) {
+            removeProductAuthorization(productAuthorization);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -145,5 +186,17 @@ public class ProductGroupService {
         List<UserGroupRelationship> relationships = userGroupRelationshipRepository
                 .findByUserId(userId);
         return relationships.stream().map(UserGroupRelationship::getGroup).toList();
+    }
+
+    @Transactional
+    public void removeProductAuthorization(ProductAuthorization productAuthorization) {
+        // find all the groups that use this authorization
+        List<ProductGroup> groups = productGroupRepository.findGroupsByProductAuthorizationId(productAuthorization.getId());
+        // for each group, remove this auth
+        for (ProductGroup group : groups) {
+            removeAuthFromGroup(productAuthorization, group);
+        }
+
+        productAuthorizationRepository.deleteById(productAuthorization.getId());
     }
 }

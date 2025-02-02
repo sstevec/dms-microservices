@@ -54,6 +54,17 @@ public class UserRelationshipService {
     }
 
     @Transactional
+    public UserRelationship addRelationship(String parentEmail, UUID childId) {
+        User parent = userRepository.findByEmail(parentEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Parent user not found"));
+
+        User child = userRepository.findById(childId)
+                .orElseThrow(() -> new IllegalArgumentException("Child user not found"));
+
+        return addRelationship(parent, child);
+    }
+
+    @Transactional
     public void deleteRelationship(UUID parentId, UUID childId) {
         UserRelationship relationship = relationshipRepository.findByParentIdAndChildId(parentId, childId)
                 .orElseThrow(() -> new IllegalArgumentException("Relationship not found"));

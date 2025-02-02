@@ -26,6 +26,10 @@ public class Product {
     @Column(nullable = false)
     private String productDetail; // Stores product-specific details as a long string
 
+    @Lob
+    @Column(nullable = false)
+    private String customerInfoTemplate; // Stores product-specific details as a long string
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -71,6 +75,14 @@ public class Product {
 
     public void setProductDetail(String productDetail) {
         this.productDetail = productDetail;
+    }
+
+    public String getcustomerInfoTemplate() {
+        return customerInfoTemplate;
+    }
+
+    public void setcustomerInfoTemplate(String customerInfoTemplate) {
+        this.customerInfoTemplate = customerInfoTemplate;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -147,6 +147,7 @@ public class User {
         this.password = "";
         this.parentAccount = null;
         this.freeAccounts = null;
+        this.maxFreeAccounts = 0;
     }
 }
 
